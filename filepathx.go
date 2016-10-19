@@ -1,5 +1,6 @@
-// Package filepathx is a superset of the core filepath package.
-// It adds double-star globbing, where "**" represents a recursive wildcard matching zero-or-more directory levels deep.
+// Package filepathx adds double-star globbing support to the Glob function from the core path/filepath package.
+// You might recognize "**" recursive globs from things like your .gitignore file, and zsh.
+// The "**" glob represents a recursive wildcard matching zero-or-more directory levels deep.
 package filepathx
 
 import (
@@ -8,20 +9,20 @@ import (
 	"strings"
 )
 
+// Globs represents one filepath glob, with its elements joined by "**".
 type Globs []string
 
-// Glob adds double-star support to the core path/filepath.Glob function.
-// It is useful when your globs might have double-stars, but you're not sure.
-func Glob(pat string) ([]string, error) {
-	if !strings.Contains(pat, "**") {
+// Glob adds double-star support to the core path/filepath Glob function.
+// It's useful when your globs might have double-stars, but you're not sure.
+func Glob(pattern string) ([]string, error) {
+	if !strings.Contains(pattern, "**") {
 		// passthru to core package if no double-star
-		return filepath.Glob(pat)
+		return filepath.Glob(pattern)
 	}
-	return Globs(strings.Split(pat, "**")).Expand()
+	return Globs(strings.Split(pattern, "**")).Expand()
 }
 
-// Expand finds matches for the provided list of glob patterns.
-// A double-star pattern is assumed between each pair of array elements.
+// Expand finds matches for the provided Globs.
 func (globs Globs) Expand() (matches []string, err error) {
 	var prefixes = []string{""} // accumulate here
 	for _, glob := range globs {
