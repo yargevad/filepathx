@@ -23,18 +23,18 @@ func Glob(pattern string) ([]string, error) {
 }
 
 // Expand finds matches for the provided Globs.
-func (globs Globs) Expand() (matches []string, err error) {
-	var prefixes = []string{""} // accumulate here
+func (globs Globs) Expand() ([]string, error) {
+	var matches = []string{""} // accumulate here
 	for _, glob := range globs {
 		var hits []string
 		var hitMap = map[string]bool{}
-		for _, prefix := range prefixes {
-			matches, err := filepath.Glob(prefix + glob)
+		for _, match := range matches {
+			paths, err := filepath.Glob(match + glob)
 			if err != nil {
 				return nil, err
 			}
-			for _, match := range matches {
-				err = filepath.Walk(match, func(path string, info os.FileInfo, err error) error {
+			for _, path := range paths {
+				err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 					if err != nil {
 						return err
 					}
@@ -50,8 +50,13 @@ func (globs Globs) Expand() (matches []string, err error) {
 				}
 			}
 		}
-		prefixes = hits
+		matches = hits
 	}
 
-	return prefixes, nil
+	// fix up return value for nil input
+	if globs == nil && len(matches) > 0 && matches[0] == "" {
+		matches = matches[1:]
+	}
+
+	return matches, nil
 }
