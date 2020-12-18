@@ -40,6 +40,15 @@ func (globs Globs) Expand() ([]string, error) {
 					}
 					// save deduped match from current iteration
 					if _, ok := hitMap[path]; !ok {
+						
+						// Escape `filepath.Match` syntax.
+						// On Unix escaping works with `\\`, 
+						// on windows it doesn't, therefore
+						// replace it by '?' := any character
+						path = strings.ReplaceAll(path, "*", "?")
+						path = strings.ReplaceAll(path, "[", "?")
+						path = strings.ReplaceAll(path, "]", "?")
+						
 						hits = append(hits, path)
 						hitMap[path] = true
 					}
