@@ -6,6 +6,7 @@ package filepathx
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -24,11 +25,28 @@ func Glob(pattern string) ([]string, error) {
 
 // Expand finds matches for the provided Globs.
 func (globs Globs) Expand() ([]string, error) {
+
+	// Escape `filepath.Match` syntax.
+	// On Unix escaping works with `\\`,
+	// on windows it is disabled, therefore
+	// replace it by '?' := any character.
+	var escapeChar string = "\\"
+	if runtime.GOOS == "windows" {
+		escapeChar = "?"
+	}
+
 	var matches = []string{""} // accumulate here
 	for _, glob := range globs {
 		var hits []string
 		var hitMap = map[string]bool{}
 		for _, match := range matches {
+
+			match = strings.ReplaceAll(
+				strings.ReplaceAll(
+					strings.ReplaceAll(match, "*", escapeChar+"*"),
+					"[", escapeChar+"["),
+				"]", escapeChar+"]")
+
 			paths, err := filepath.Glob(match + glob)
 			if err != nil {
 				return nil, err
