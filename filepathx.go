@@ -26,6 +26,11 @@ func Glob(pattern string) ([]string, error) {
 func (globs Globs) Expand() ([]string, error) {
 	var matches = []string{""} // accumulate here
 	for _, glob := range globs {
+		if glob == "" {
+			// If the glob is empty string that means it was **
+			// By setting this to . patterns like **/*.txt are supported
+			glob = "."
+		}
 		var hits []string
 		var hitMap = map[string]bool{}
 		for _, match := range matches {
