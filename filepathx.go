@@ -29,7 +29,7 @@ func (globs Globs) Expand() ([]string, error) {
 		var hits []string
 		var hitMap = map[string]bool{}
 		for _, match := range matches {
-			paths, err := filepath.Glob(match + glob)
+			paths, err := filepath.Glob(filepath.Join(match, glob))
 			if err != nil {
 				return nil, err
 			}
