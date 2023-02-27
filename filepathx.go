@@ -4,6 +4,7 @@
 package filepathx
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +21,16 @@ func Glob(pattern string) ([]string, error) {
 		return filepath.Glob(pattern)
 	}
 	return Globs(strings.Split(pattern, "**")).Expand()
+}
+
+// GlobFS adds double-star support to the core path/filepath fs.Glob function.
+// It's useful when your globs might have double-stars, but you're not sure.
+func GlobFS(f fs.FS, pattern string) ([]string, error) {
+	if !strings.Contains(pattern, "**") {
+		// passthru to core package if no double-star
+		return filepath.Glob(pattern)
+	}
+	return Globs(strings.Split(pattern, "**")).ExpandFS(f)
 }
 
 // Expand finds matches for the provided Globs.
@@ -59,4 +70,51 @@ func (globs Globs) Expand() ([]string, error) {
 	}
 
 	return matches, nil
+}
+
+func (globs Globs) ExpandFS(f fs.FS) ([]string, error) {
+	var matches = []string{""} // accumulate here
+	for _, glob := range globs {
+		var hits []string
+		var hitMap = map[string]bool{}
+		for _, match := range matches {
+			pattern := match + glob
+			// strip ending /
+			if strings.HasSuffix(pattern, "/") {
+				pattern = pattern[:len(pattern)-1]
+			}
+			if pattern == "" {
+				pattern = "*"
+			}
+			paths, err := fs.Glob(f, pattern)
+			if err != nil {
+				return nil, err
+			}
+			for _, path := range paths {
+				err = fs.WalkDir(f, path, func(path string, d fs.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+					// save deduped match from current iteration
+					if _, ok := hitMap[path]; !ok {
+						hits = append(hits, path)
+						hitMap[path] = true
+					}
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		matches = hits
+	}
+
+	// fix up return value for nil input
+	if globs == nil && len(matches) > 0 && matches[0] == "" {
+		matches = matches[1:]
+	}
+
+	return matches, nil
+
 }
